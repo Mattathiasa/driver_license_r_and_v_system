@@ -69,6 +69,16 @@ public class ApiResponseHandler
             Data = null
         });
     }
+
+    public static ActionResult BadRequest(string message)
+    {
+        return new BadRequestObjectResult(new ApiResponse<object>
+        {
+            Success = false,
+            Message = message,
+            Data = null
+        });
+    }
 }
 
 public class ApiResponse<T>

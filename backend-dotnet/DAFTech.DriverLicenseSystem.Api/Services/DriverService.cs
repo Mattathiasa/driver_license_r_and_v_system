@@ -47,7 +47,8 @@ public class DriverService
             QRRawData = dto.QRRawData,
             OCRRawText = dto.OCRRawText,
             RegisteredBy = registeredByUserId,
-            CreatedDate = DateTime.Now
+            CreatedDate = DateTime.Now,
+            Status = DetermineStatus(expiryDate)
         };
 
         return await _driverRepository.Create(driver);

@@ -12,7 +12,7 @@ public class Driver
     public string? OCRRawText { get; set; }
     public DateTime CreatedDate { get; set; } = DateTime.Now;
     public int RegisteredBy { get; set; }
-    public string Status { get; set; }
+    public string Status { get; set; } = "active";
 
     // Navigation property
     public User RegisteredByUser { get; set; } = null!;
