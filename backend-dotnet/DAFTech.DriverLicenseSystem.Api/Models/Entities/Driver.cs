@@ -10,7 +10,7 @@ public class Driver
     public DateTime ExpiryDate { get; set; }
     public string? QRRawData { get; set; }
     public string? OCRRawText { get; set; }
-    public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedDate { get; set; } = DateTime.Now;
     public int RegisteredBy { get; set; }
     public string Status { get; set; }
 

@@ -303,15 +303,24 @@ class _VerifyLicenseScreenState extends State<VerifyLicenseScreen> {
   String _getResultTitle() {
     switch (_verificationResult) {
       case 'active':
-        return 'Active License';
-      case 'real':
         return 'Real License';
       case 'expired':
-        return 'Expired License';
+        return 'Real License';
       case 'fake':
         return 'Fake License';
       default:
         return 'Unknown';
+    }
+  }
+
+  String _getResultSubtitle() {
+    switch (_verificationResult) {
+      case 'active':
+        return 'Active';
+      case 'expired':
+        return 'Expired';
+      default:
+        return '';
     }
   }
 
@@ -783,7 +792,37 @@ class _VerifyLicenseScreenState extends State<VerifyLicenseScreen> {
                     color: color.shade900,
                   ),
                 ),
-                const SizedBox(height: 8),
+                if (_getResultSubtitle().isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _verificationResult == 'active'
+                          ? Colors.teal.shade50
+                          : Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _verificationResult == 'active'
+                            ? Colors.teal.shade200
+                            : Colors.orange.shade200,
+                      ),
+                    ),
+                    child: Text(
+                      _getResultSubtitle(),
+                      style: GoogleFonts.outfit(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: _verificationResult == 'active'
+                            ? Colors.teal.shade700
+                            : Colors.orange.shade700,
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
                 Text(
                   _getResultMessage(),
                   textAlign: TextAlign.center,

@@ -150,41 +150,156 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
           'already registered',
         );
 
+        // Extract status from error message if present
+        String status = 'Active';
+        if (errorMessage.contains('Status: ACTIVE')) {
+          status = 'Active';
+        } else if (errorMessage.contains('Status: EXPIRED')) {
+          status = 'Expired';
+        }
+
         // Show duplicate license notification
         if (isAlreadyRegistered) {
           await NotificationService().showDuplicateLicenseNotification(
             licenseId: _licenseIdController.text,
             fullName: _fullNameController.text,
-            status: 'Active',
+            status: status,
           );
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(
-                  isAlreadyRegistered
-                      ? Icons.info_outline_rounded
-                      : Icons.error_outline,
-                  color: Colors.white,
+        // Show dialog for already registered licenses
+        if (isAlreadyRegistered) {
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(errorMessage, style: GoogleFonts.outfit()),
+                title: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      color: Colors.orange.shade700,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Already Registered',
+                      style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'License ID: ${_licenseIdController.text}',
+                      style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: status == 'Active'
+                            ? Colors.green.shade50
+                            : Colors.orange.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: status == 'Active'
+                              ? Colors.green.shade200
+                              : Colors.orange.shade200,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            status == 'Active'
+                                ? Icons.check_circle_outline
+                                : Icons.event_busy,
+                            color: status == 'Active'
+                                ? Colors.green.shade700
+                                : Colors.orange.shade700,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Current Status',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                                Text(
+                                  status.toUpperCase(),
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: status == 'Active'
+                                        ? Colors.green.shade700
+                                        : Colors.orange.shade700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'This license is already in the system and cannot be registered again.',
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'OK',
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+        } else {
+          // Show snackbar for other errors
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(errorMessage, style: GoogleFonts.outfit()),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.red.shade600,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              duration: const Duration(seconds: 4),
             ),
-            backgroundColor: isAlreadyRegistered
-                ? Colors.orange.shade800
-                : Colors.red.shade600,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            duration: const Duration(seconds: 4),
-          ),
-        );
+          );
+        }
       }
     } finally {
       if (mounted) {

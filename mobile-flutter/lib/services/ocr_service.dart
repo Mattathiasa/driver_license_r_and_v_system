@@ -3,41 +3,7 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 class OCRService {
   static final _textRecognizer = TextRecognizer();
 
-  /// Normalize OCR text before parsing
-  /// - Remove extra line breaks
-  /// - Join broken numbers (e.g., "30 5 1993" → "30/05/1993")
-  /// - Fix common OCR errors
-  static String _normalizeOCRText(String text) {
-    // Step 1: Fix common OCR character errors
-    String normalized = text
-        .replaceAll('O', '0') // Letter O → Zero
-        .replaceAll('o', '0')
-        .replaceAll('l', '1') // Lowercase L → One
-        .replaceAll('I', '1') // Uppercase I → One
-        .replaceAll('S', '5') // S → 5 (in numbers)
-        .replaceAll('Z', '2') // Z → 2
-        .replaceAll('B', '8'); // B → 8
-
-    // Step 2: Remove extra spaces and line breaks
-    // Replace multiple spaces with single space
-    normalized = normalized.replaceAll(RegExp(r'\s+'), ' ').trim();
-
-    // Step 3: Join broken date numbers
-    // Pattern: "30 5 1993" → "30/05/1993"
-    normalized = normalized.replaceAllMapped(
-      RegExp(r'(\d{1,2})\s+(\d{1,2})\s+(\d{4})'),
-      (match) {
-        final day = match.group(1)!.padLeft(2, '0');
-        final month = match.group(2)!.padLeft(2, '0');
-        final year = match.group(3)!;
-        return '$day/$month/$year';
-      },
-    );
-
-    return normalized;
-  }
-
-  /// Extract text from image using Google ML Kit
+  /// Extract text from image using Google ML Kit with left/right column detection
   static Future<Map<String, String>> extractDataFromImage(
     String imagePath,
   ) async {
@@ -45,16 +11,11 @@ class OCRService {
       final inputImage = InputImage.fromFilePath(imagePath);
       final recognizedText = await _textRecognizer.processImage(inputImage);
 
-      final fullText = recognizedText.text;
-
-      // Normalize OCR text before parsing
-      final normalizedText = _normalizeOCRText(fullText);
-
-      // Parse using field anchors and fuzzy extraction
-      final parsedData = _parseWithFieldAnchors(normalizedText);
+      // Parse using improved column-based detection
+      final parsedData = _parseWithColumnDetection(recognizedText);
 
       // Store original OCR text
-      parsedData['ocrRawText'] = fullText;
+      parsedData['ocrRawText'] = recognizedText.text;
 
       return parsedData;
     } catch (e) {
@@ -70,188 +31,291 @@ class OCRService {
     }
   }
 
-  /// Parse driver license text using field anchors and fuzzy extraction
-  static Map<String, String> _parseWithFieldAnchors(String text) {
-    final data = <String, String>{
-      'licenseId': '',
-      'fullName': '',
-      'dateOfBirth': '',
-      'expiryDate': '',
-      'licenseType': '',
+  /// Normalize text for better pattern matching
+  static String _normalize(String text) {
+    return text
+        .replaceAll(RegExp(r'[Oo]'), '0')
+        .replaceAll(RegExp(r'[Il]'), '1')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .toLowerCase();
+  }
+
+  /// Parse with left/right column detection
+  static Map<String, String> _parseWithColumnDetection(
+    RecognizedText recognizedText,
+  ) {
+    // Calculate image midpoint
+    double maxX = 0;
+    for (final block in recognizedText.blocks) {
+      for (final line in block.lines) {
+        final box = line.boundingBox;
+        if (box.right > maxX) {
+          maxX = box.right;
+        }
+      }
+    }
+    final midX = maxX / 2;
+
+    // Separate text into left and right columns
+    List<String> leftColumn = [];
+    List<String> rightColumn = [];
+    List<String> leftColumnRaw = []; // Keep original case for grade extraction
+    List<String> rightColumnRaw = []; // Keep original case for dates
+
+    for (final block in recognizedText.blocks) {
+      for (final line in block.lines) {
+        final box = line.boundingBox;
+
+        if (box.left < midX) {
+          leftColumn.add(line.text);
+          leftColumnRaw.add(line.text);
+        } else {
+          rightColumn.add(line.text);
+          rightColumnRaw.add(line.text);
+        }
+      }
+    }
+
+    final leftText = _normalize(leftColumn.join(" "));
+    final rightText = _normalize(rightColumn.join(" "));
+    final leftTextRaw = leftColumnRaw.join(" ");
+    final rightTextRaw = rightColumnRaw.join(" ");
+    final rawText = recognizedText.text;
+
+    return {
+      'licenseId': _extractLicense(leftText, leftTextRaw) ?? '',
+      'fullName': _extractName(rawText) ?? '',
+      'dateOfBirth': _extractDOB(rightText, rightTextRaw) ?? '',
+      'expiryDate': _extractExpiry(rightText, rightTextRaw) ?? '',
+      'licenseType': _extractGrade(leftTextRaw) ?? '',
       'sex': '',
       'address': '',
     };
-
-    // 1. Extract License Number (6 digits after "License No" or similar)
-    final licensePatterns = [
-      RegExp(r'License\s*No\.?\s*[:\-]?\s*(\d{6})', caseSensitive: false),
-      RegExp(r'License\s*Number\s*[:\-]?\s*(\d{6})', caseSensitive: false),
-      RegExp(r'DL\s*No\.?\s*[:\-]?\s*(\d{6})', caseSensitive: false),
-      RegExp(r'ID\s*No\.?\s*[:\-]?\s*(\d{6})', caseSensitive: false),
-      // Fallback: standalone 6-digit number
-      RegExp(r'\b(\d{6})\b'),
-    ];
-
-    for (final pattern in licensePatterns) {
-      final match = pattern.firstMatch(text);
-      if (match != null && match.group(1) != null) {
-        data['licenseId'] = match.group(1)!;
-        break;
-      }
-    }
-
-    // 2. Extract Full Name (2-3 uppercase words after "Full Name" or "Name")
-    final namePatterns = [
-      RegExp(
-        r'Full\s*Name\s*[:\-]?\s*([A-Z]{2,}(?:\s+[A-Z]{2,}){1,3})',
-        caseSensitive: false,
-      ),
-      RegExp(
-        r'Name\s*[:\-]?\s*([A-Z]{2,}(?:\s+[A-Z]{2,}){1,3})',
-        caseSensitive: false,
-      ),
-      // Amharic name pattern
-      RegExp(
-        r'የአሽከርካሪው\s*ስም\s*[:\-]?\s*([\u1200-\u137F\s]+?)(?=የመንጃ|$)',
-        caseSensitive: false,
-      ),
-    ];
-
-    for (final pattern in namePatterns) {
-      final match = pattern.firstMatch(text);
-      if (match != null && match.group(1) != null) {
-        data['fullName'] = match.group(1)!.trim();
-        break;
-      }
-    }
-
-    // 3. Extract Date of Birth (Gregorian format after "DOB")
-    final dobPatterns = [
-      RegExp(
-        r'DOB\s*[:\-]?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})',
-        caseSensitive: false,
-      ),
-      RegExp(
-        r'Date\s*of\s*Birth\s*[:\-]?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})',
-        caseSensitive: false,
-      ),
-      RegExp(
-        r'Birth\s*Date\s*[:\-]?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})',
-        caseSensitive: false,
-      ),
-    ];
-
-    for (final pattern in dobPatterns) {
-      final match = pattern.firstMatch(text);
-      if (match != null && match.group(1) != null) {
-        data['dateOfBirth'] = _formatDate(match.group(1)!);
-        break;
-      }
-    }
-
-    // 4. Extract Expiry Date (Gregorian format after "Expiry")
-    final expiryPatterns = [
-      RegExp(
-        r'Expiry\s*Date\s*[:\-]?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})',
-        caseSensitive: false,
-      ),
-      RegExp(
-        r'Expires?\s*[:\-]?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})',
-        caseSensitive: false,
-      ),
-      RegExp(
-        r'Valid\s*Until\s*[:\-]?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})',
-        caseSensitive: false,
-      ),
-      RegExp(
-        r'EXP\s*[:\-]?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})',
-        caseSensitive: false,
-      ),
-    ];
-
-    for (final pattern in expiryPatterns) {
-      final match = pattern.firstMatch(text);
-      if (match != null && match.group(1) != null) {
-        data['expiryDate'] = _formatDate(match.group(1)!);
-        break;
-      }
-    }
-
-    // 5. Extract License Type/Class (A, B, C, D, E)
-    final typePatterns = [
-      RegExp(r'Class\s*[:\-]?\s*([A-E])', caseSensitive: false),
-      RegExp(r'Type\s*[:\-]?\s*([A-E])', caseSensitive: false),
-      RegExp(r'Category\s*[:\-]?\s*([A-E])', caseSensitive: false),
-      // Amharic license type
-      RegExp(
-        r'የመንጃ\s*ፍቃድ\s*ቁጥር\s*[:\-]?\s*[\u1200-\u137F\s]+-([^\-]+)-',
-        caseSensitive: false,
-      ),
-    ];
-
-    for (final pattern in typePatterns) {
-      final match = pattern.firstMatch(text);
-      if (match != null && match.group(1) != null) {
-        data['licenseType'] = match.group(1)!.trim().toUpperCase();
-        break;
-      }
-    }
-
-    // 6. Extract Sex (M or F)
-    final sexPatterns = [
-      RegExp(r'Sex\s*[:\-]?\s*([MF])', caseSensitive: false),
-      RegExp(r'Gender\s*[:\-]?\s*([MF])', caseSensitive: false),
-      RegExp(r'Male|Female', caseSensitive: false),
-    ];
-
-    for (final pattern in sexPatterns) {
-      final match = pattern.firstMatch(text);
-      if (match != null) {
-        final value = match.group(1) ?? match.group(0)!;
-        data['sex'] = value.toUpperCase().startsWith('M') ? 'M' : 'F';
-        break;
-      }
-    }
-
-    // 7. Extract Address (multi-word text after "Address")
-    final addressPattern = RegExp(
-      r'Address\s*[:\-]?\s*([A-Z0-9\s,\.]{10,100})',
-      caseSensitive: false,
-    );
-    final addressMatch = addressPattern.firstMatch(text);
-    if (addressMatch != null && addressMatch.group(1) != null) {
-      data['address'] = addressMatch.group(1)!.trim();
-    }
-
-    return data;
   }
 
-  /// Format date to YYYY-MM-DD
-  static String _formatDate(String date) {
-    try {
-      // Remove any non-digit, non-separator characters
-      final cleaned = date.replaceAll(RegExp(r'[^\d\/\-]'), '');
-      final parts = cleaned.split(RegExp(r'[\/\-]'));
+  /// Extract 6-digit license number only
+  static String? _extractLicense(String normalizedText, String rawText) {
+    // First try to find 6 consecutive digits in normalized text
+    final match = RegExp(r'\b(\d{6})\b').firstMatch(normalizedText);
+    if (match != null) {
+      return match.group(1);
+    }
 
-      if (parts.length == 3) {
-        int day = int.parse(parts[0]);
-        int month = int.parse(parts[1]);
-        int year = int.parse(parts[2]);
+    // Try in raw text as well
+    final rawMatch = RegExp(r'\b(\d{6})\b').firstMatch(rawText);
+    if (rawMatch != null) {
+      return rawMatch.group(1);
+    }
 
-        // Handle 2-digit years
-        if (year < 100) {
-          year += (year > 50) ? 1900 : 2000;
-        }
+    // Look for 6 digits with possible spaces or separators
+    final spacedMatch = RegExp(
+      r'(\d)\s*(\d)\s*(\d)\s*(\d)\s*(\d)\s*(\d)',
+    ).firstMatch(normalizedText);
+    if (spacedMatch != null) {
+      return '${spacedMatch.group(1)}${spacedMatch.group(2)}${spacedMatch.group(3)}'
+          '${spacedMatch.group(4)}${spacedMatch.group(5)}${spacedMatch.group(6)}';
+    }
 
-        // Validate date
-        if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-          return '$year-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+    return null;
+  }
+
+  /// Extract full name (all caps, 10+ characters)
+  static String? _extractName(String raw) {
+    for (var line in raw.split('\n')) {
+      final trimmed = line.trim();
+      if (RegExp(r'^[A-Z ]{10,}$').hasMatch(trimmed)) {
+        return trimmed;
+      }
+    }
+    return null;
+  }
+
+  /// Extract date of birth from right column
+  static String? _extractDOB(String normalizedText, String rawText) {
+    // Try multiple date patterns
+
+    // Pattern 1: DD/MM/YYYY or DD MM YYYY
+    var match = RegExp(
+      r'\b(\d{1,2})[\s/\-](\d{1,2})[\s/\-](19\d{2}|20\d{2})\b',
+    ).firstMatch(rawText);
+
+    if (match != null) {
+      final day = match.group(1)!.padLeft(2, '0');
+      final month = match.group(2)!.padLeft(2, '0');
+      final year = match.group(3)!;
+      return '$year-$month-$day';
+    }
+
+    // Pattern 2: Look in normalized text
+    match = RegExp(
+      r'\b(\d{1,2})[\s/\-](\d{1,2})[\s/\-](19\d{2}|20\d{2})\b',
+    ).firstMatch(normalizedText);
+
+    if (match != null) {
+      final day = match.group(1)!.padLeft(2, '0');
+      final month = match.group(2)!.padLeft(2, '0');
+      final year = match.group(3)!;
+      return '$year-$month-$day';
+    }
+
+    // Pattern 3: Spaced digits like "1 5 1990"
+    match = RegExp(
+      r'(\d{1,2})\s+(\d{1,2})\s+(19\d{2}|20\d{2})',
+    ).firstMatch(rawText);
+
+    if (match != null) {
+      final day = match.group(1)!.padLeft(2, '0');
+      final month = match.group(2)!.padLeft(2, '0');
+      final year = match.group(3)!;
+      return '$year-$month-$day';
+    }
+
+    return null;
+  }
+
+  /// Extract expiry date (last date found in right column)
+  static String? _extractExpiry(String normalizedText, String rawText) {
+    // Find all dates in the right column
+    final matches = RegExp(
+      r'\b(\d{1,2})[\s/\-,](\d{1,2})[\s/\-,](20\d{2})\b',
+    ).allMatches(rawText).toList();
+
+    if (matches.isEmpty) {
+      // Try normalized text
+      final normalizedMatches = RegExp(
+        r'\b(\d{1,2})[\s/\-,](\d{1,2})[\s/\-,](20\d{2})\b',
+      ).allMatches(normalizedText).toList();
+
+      if (normalizedMatches.isEmpty) return null;
+
+      // Take the last date (expiry is usually after DOB)
+      final match = normalizedMatches.last;
+      final day = match.group(1)!.padLeft(2, '0');
+      final month = match.group(2)!.padLeft(2, '0');
+      final year = match.group(3)!;
+      return '$year-$month-$day';
+    }
+
+    // Take the last date found (usually expiry is after DOB)
+    final match = matches.last;
+    final day = match.group(1)!.padLeft(2, '0');
+    final month = match.group(2)!.padLeft(2, '0');
+    final year = match.group(3)!;
+    return '$year-$month-$day';
+  }
+
+  /// Extract grade (word after "Grade" or "grade")
+  /// Valid types: Auto, Public 1, Public 2, 02, Taxi 1, Taxi 2
+  static String? _extractGrade(String rawText) {
+    // Define valid license types
+    const validTypes = [
+      'Auto',
+      'Public 1',
+      'Public 2',
+      '02',
+      'Taxi 1',
+      'Taxi 2',
+    ];
+
+    // Look for "Grade" followed by text
+    final gradeMatch = RegExp(
+      r'grade[\s:]*([a-zA-Z0-9\s]+)',
+      caseSensitive: false,
+    ).firstMatch(rawText);
+
+    String? extractedText;
+    if (gradeMatch != null) {
+      extractedText = gradeMatch.group(1)!.trim();
+    } else {
+      // If no "Grade" keyword, search entire text
+      extractedText = rawText;
+    }
+
+    // Normalize extracted text for comparison
+    final normalized = extractedText.toLowerCase().replaceAll(
+      RegExp(r'\s+'),
+      ' ',
+    );
+
+    // Try exact matches first (case-insensitive)
+    for (final type in validTypes) {
+      if (normalized.contains(type.toLowerCase())) {
+        return type;
+      }
+    }
+
+    // Try fuzzy matching for common OCR errors
+
+    // Auto variations
+    if (normalized.contains('auto') ||
+        normalized.contains('aut0') ||
+        normalized.contains('aulo')) {
+      return 'Auto';
+    }
+
+    // Public 1 variations
+    if ((normalized.contains('public') && normalized.contains('1')) ||
+        normalized.contains('public1') ||
+        normalized.contains('pub1ic 1') ||
+        normalized.contains('publ1c 1')) {
+      return 'Public 1';
+    }
+
+    // Public 2 variations
+    if ((normalized.contains('public') && normalized.contains('2')) ||
+        normalized.contains('public2') ||
+        normalized.contains('pub1ic 2') ||
+        normalized.contains('publ1c 2')) {
+      return 'Public 2';
+    }
+
+    // 02 variations
+    if (normalized.contains('02') ||
+        normalized.contains('o2') ||
+        normalized.contains('0 2')) {
+      return '02';
+    }
+
+    // Taxi 1 variations
+    if ((normalized.contains('taxi') && normalized.contains('1')) ||
+        normalized.contains('taxi1') ||
+        normalized.contains('tax1 1') ||
+        normalized.contains('taxl 1')) {
+      return 'Taxi 1';
+    }
+
+    // Taxi 2 variations
+    if ((normalized.contains('taxi') && normalized.contains('2')) ||
+        normalized.contains('taxi2') ||
+        normalized.contains('tax1 2') ||
+        normalized.contains('taxl 2')) {
+      return 'Taxi 2';
+    }
+
+    // Fallback: Check if any valid type appears in the text
+    for (final type in validTypes) {
+      final typeWords = type.toLowerCase().split(' ');
+      bool allWordsFound = true;
+
+      for (final word in typeWords) {
+        if (!normalized.contains(word)) {
+          allWordsFound = false;
+          break;
         }
       }
-    } catch (e) {
-      // Return original if parsing fails
+
+      if (allWordsFound) {
+        return type;
+      }
     }
-    return date;
+
+    // Last resort: Return first valid type found in text
+    if (normalized.contains('auto')) return 'Auto';
+    if (normalized.contains('public')) return 'Public 1'; // Default to Public 1
+    if (normalized.contains('taxi')) return 'Taxi 1'; // Default to Taxi 1
+    if (normalized.contains('02') || normalized.contains('o2')) return '02';
+
+    return null;
   }
 
   /// Parse QR code data

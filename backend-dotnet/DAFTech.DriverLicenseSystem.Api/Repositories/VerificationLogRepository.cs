@@ -26,7 +26,9 @@ public class VerificationLogRepository
         int? userId, 
         string? licenseId)
     {
-        var query = _context.VerificationLogs.AsQueryable();
+        var query = _context.VerificationLogs
+            .Include(l => l.CheckedByUser)
+            .AsQueryable();
 
         if (startDate.HasValue && endDate.HasValue)
         {

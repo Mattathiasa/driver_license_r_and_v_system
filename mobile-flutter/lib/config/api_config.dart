@@ -3,12 +3,19 @@ class ApiConfig {
   // - 'emulator' for Android Emulator
   // - 'ios' for iOS Simulator
   // - 'physical' for Physical Device via WiFi
-  // - 'usb' for Physical Device via USB debugging (recommended!)
-  static const String environment = 'usb';
+  // - 'usb' for Physical Device via USB debugging
+  // - 'ngrok' for Public Access via ngrok (works from anywhere!)
+  static const String environment = 'ngrok';
 
   // For physical devices via WiFi, update this with your computer's IP address
   // Run: ipconfig (Windows) or ifconfig (Mac/Linux) to find your IP
   static const String physicalDeviceIP = '10.146.207.17'; // UPDATE THIS!
+
+  // For ngrok, update this with your ngrok URL (without /api)
+  // Get it from the ngrok terminal window after running run-with-ngrok.bat
+  // Current URL: https://uncontortive-atheistically-sebastian.ngrok-free.dev
+  static const String ngrokUrl =
+      'https://uncontortive-atheistically-sebastian.ngrok-free.dev';
 
   static String get baseUrl {
     switch (environment) {
@@ -29,6 +36,10 @@ class ApiConfig {
         // Run: adb reverse tcp:5182 tcp:5182
         return 'http://localhost:5182/api';
 
+      case 'ngrok':
+        // Public access via ngrok - works from anywhere!
+        return '$ngrokUrl/api';
+
       default:
         return 'http://10.0.2.2:5182/api';
     }
@@ -45,6 +56,8 @@ class ApiConfig {
         return 'http://$physicalDeviceIP:5182/swagger';
       case 'usb':
         return 'http://localhost:5182/swagger';
+      case 'ngrok':
+        return '$ngrokUrl/swagger';
       default:
         return 'http://10.0.2.2:5182/swagger';
     }

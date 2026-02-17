@@ -156,40 +156,26 @@ CREATE PROCEDURE SP_VerifyLicense
 AS
 BEGIN
     DECLARE @VerificationStatus NVARCHAR(20);
-    DECLARE @DriverName NVARCHAR(100);
-    DECLARE @ExpiryDate DATE;
     
-    -- Check if license exists
+    -- Check if license exists and get status
     SELECT 
-        @DriverName = FullName,
-        @ExpiryDate = ExpiryDate,
         @VerificationStatus = Status
     FROM Drivers
     WHERE LicenseID = @LicenseID;
     
     -- Determine verification status
-    IF @DriverName IS NULL
+    IF @VerificationStatus IS NULL
     BEGIN
         SET @VerificationStatus = 'fake';
     END
-    ELSE IF @ExpiryDate < CAST(GETDATE() AS DATE)
-    BEGIN
-        SET @VerificationStatus = 'expired';
-    END
-    ELSE
-    BEGIN
-        SET @VerificationStatus = 'real';
-    END
     
     -- Log the verification
-    INSERT INTO VerificationLogs (LicenseID, VerificationStatus, DriverName, ExpiryDate, CheckedBy, Notes)
-    VALUES (@LicenseID, @VerificationStatus, @DriverName, @ExpiryDate, @CheckedBy, NULL);
+    INSERT INTO VerificationLogs (LicenseID, VerificationStatus, CheckedBy)
+    VALUES (@LicenseID, @VerificationStatus, @CheckedBy);
     
     -- Return verification result
     SELECT 
         @VerificationStatus AS VerificationStatus,
-        @DriverName AS DriverName,
-        @ExpiryDate AS ExpiryDate,
         d.*
     FROM Drivers d
     WHERE LicenseID = @LicenseID;

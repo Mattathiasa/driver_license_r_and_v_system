@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:cunning_document_scanner/cunning_document_scanner.dart';
 import '../services/ocr_service.dart';
 import 'register_driver_screen.dart';
 
@@ -14,74 +14,52 @@ class ScanLicenseScreen extends StatefulWidget {
 }
 
 class _ScanLicenseScreenState extends State<ScanLicenseScreen> {
-  final ImagePicker _picker = ImagePicker();
-  XFile? _imageFile;
+  String? _scannedImagePath;
   bool _isProcessing = false;
   Map<String, String>? _extractedData;
 
-  Future<void> _captureImage() async {
+  Future<void> _scanDocument() async {
     try {
-      final XFile? photo = await _picker.pickImage(
-        source: ImageSource.camera,
-        maxWidth: 1920,
-        maxHeight: 1080,
-        imageQuality: 85,
-      );
+      // Use cunning_document_scanner for edge detection and perspective correction
+      List<String> pictures =
+          await CunningDocumentScanner.getPictures(
+            noOfPages: 1, // Only scan one page (the license)
+          ) ??
+          [];
 
-      if (photo != null) {
+      if (pictures.isNotEmpty) {
         setState(() {
-          _imageFile = photo;
+          _scannedImagePath = pictures.first;
           _extractedData = null;
         });
         await _processImage();
       }
     } catch (e) {
-      _showError('Camera not available. Please use file upload instead.');
-    }
-  }
-
-  Future<void> _pickImage() async {
-    try {
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1920,
-        maxHeight: 1080,
-        imageQuality: 85,
-      );
-
-      if (image != null) {
-        setState(() {
-          _imageFile = image;
-          _extractedData = null;
-        });
-        await _processImage();
-      }
-    } catch (e) {
-      _showError('Failed to pick image: $e');
+      _showError('Failed to scan document: ${e.toString()}');
     }
   }
 
   Future<void> _processImage() async {
-    if (_imageFile == null) return;
+    if (_scannedImagePath == null) return;
 
     setState(() => _isProcessing = true);
 
     try {
       // Real OCR extraction using Google ML Kit
-      final data = await OCRService.extractDataFromImage(_imageFile!.path);
+      final data = await OCRService.extractDataFromImage(_scannedImagePath!);
 
       // Debug: Print extracted data
-      print('=== OCR Extracted Data ===');
-      print('License ID: ${data['licenseId']}');
-      print('Full Name: ${data['fullName']}');
-      print('Date of Birth: ${data['dateOfBirth']}');
-      print('License Type: ${data['licenseType']}');
-      print('Expiry Date: ${data['expiryDate']}');
-      print('OCR Raw Text: ${data['ocrRawText']}');
-      print('========================');
+      debugPrint('=== OCR Extracted Data ===');
+      debugPrint('License ID: ${data['licenseId']}');
+      debugPrint('Full Name: ${data['fullName']}');
+      debugPrint('Date of Birth: ${data['dateOfBirth']}');
+      debugPrint('License Type: ${data['licenseType']}');
+      debugPrint('Expiry Date: ${data['expiryDate']}');
+      debugPrint('OCR Raw Text: ${data['ocrRawText']}');
+      debugPrint('========================');
 
       final qrData = OCRService.generateQRData(data);
-      data['qrData'] = qrData;
+      data['qrRawData'] = qrData;
 
       setState(() {
         _extractedData = data;
@@ -95,14 +73,14 @@ class _ScanLicenseScreenState extends State<ScanLicenseScreen> {
           MaterialPageRoute(
             builder: (context) => RegisterDriverScreen(
               prefilledData: data,
-              imagePath: _imageFile?.path,
+              imagePath: _scannedImagePath,
             ),
           ),
         );
       }
     } catch (e) {
       setState(() => _isProcessing = false);
-      print('OCR Error: $e');
+      debugPrint('OCR Error: $e');
       _showError('Failed to process image: ${e.toString()}');
     }
   }
@@ -132,7 +110,7 @@ class _ScanLicenseScreenState extends State<ScanLicenseScreen> {
       MaterialPageRoute(
         builder: (context) => RegisterDriverScreen(
           prefilledData: _extractedData!,
-          imagePath: _imageFile?.path,
+          imagePath: _scannedImagePath,
         ),
       ),
     );
@@ -193,7 +171,7 @@ class _ScanLicenseScreenState extends State<ScanLicenseScreen> {
                               ),
                             ),
                             Text(
-                              'Extract data using OCR recognition',
+                              'Auto-detect edges & extract data',
                               style: GoogleFonts.outfit(
                                 fontSize: 14,
                                 color: Colors.white.withValues(alpha: 0.8),
@@ -224,21 +202,38 @@ class _ScanLicenseScreenState extends State<ScanLicenseScreen> {
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(color: Colors.indigo.shade100),
                           ),
-                          child: Row(
+                          child: Column(
                             children: [
-                              Icon(
-                                Icons.info_outline_rounded,
-                                color: Colors.indigo.shade700,
-                                size: 28,
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Text(
-                                  'Capture or upload a driver\'s license to automatically extract information',
-                                  style: GoogleFonts.outfit(
-                                    color: Colors.indigo.shade900,
-                                    fontSize: 14,
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.info_outline_rounded,
+                                    color: Colors.indigo.shade700,
+                                    size: 28,
                                   ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Text(
+                                      'Smart Document Scanner',
+                                      style: GoogleFonts.outfit(
+                                        color: Colors.indigo.shade900,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                '• Automatic edge detection\n'
+                                '• Manual corner adjustment\n'
+                                '• Perspective correction\n'
+                                '• OCR text extraction',
+                                style: GoogleFonts.outfit(
+                                  color: Colors.indigo.shade800,
+                                  fontSize: 14,
+                                  height: 1.6,
                                 ),
                               ),
                             ],
@@ -247,91 +242,44 @@ class _ScanLicenseScreenState extends State<ScanLicenseScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Action Buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: FadeInLeft(
-                              delay: const Duration(milliseconds: 200),
-                              child: ElevatedButton(
-                                onPressed: _isProcessing ? null : _captureImage,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.indigo.shade700,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 18,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  elevation: 5,
-                                  shadowColor: Colors.indigo.withValues(
-                                    alpha: 0.3,
-                                  ),
-                                ),
-                                child: Column(
-                                  children: [
-                                    const Icon(
-                                      Icons.camera_alt_rounded,
-                                      size: 32,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Capture',
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
+                      // Scan Button
+                      FadeInUp(
+                        delay: const Duration(milliseconds: 200),
+                        child: ElevatedButton(
+                          onPressed: _isProcessing ? null : _scanDocument,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.indigo.shade700,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 20),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            elevation: 5,
+                            shadowColor: Colors.indigo.withValues(alpha: 0.3),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.document_scanner_rounded,
+                                size: 28,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Scan Driver License',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ),
+                            ],
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: FadeInRight(
-                              delay: const Duration(milliseconds: 200),
-                              child: OutlinedButton(
-                                onPressed: _isProcessing ? null : _pickImage,
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.indigo.shade700,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 18,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  side: BorderSide(
-                                    color: Colors.indigo.shade700,
-                                    width: 2,
-                                  ),
-                                ),
-                                child: Column(
-                                  children: [
-                                    const Icon(
-                                      Icons.upload_file_rounded,
-                                      size: 32,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Upload',
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                       const SizedBox(height: 32),
 
                       // Image Preview
-                      if (_imageFile != null)
+                      if (_scannedImagePath != null)
                         FadeIn(
                           child: Container(
                             decoration: BoxDecoration(
@@ -347,7 +295,7 @@ class _ScanLicenseScreenState extends State<ScanLicenseScreen> {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(20),
                               child: Image.file(
-                                File(_imageFile!.path),
+                                File(_scannedImagePath!),
                                 height: 200,
                                 width: double.infinity,
                                 fit: BoxFit.cover,
@@ -356,7 +304,7 @@ class _ScanLicenseScreenState extends State<ScanLicenseScreen> {
                           ),
                         ),
 
-                      if (_imageFile != null) const SizedBox(height: 32),
+                      if (_scannedImagePath != null) const SizedBox(height: 32),
 
                       // Processing Indicator
                       if (_isProcessing)
@@ -468,10 +416,7 @@ class _ScanLicenseScreenState extends State<ScanLicenseScreen> {
                                 ),
                                 _DataRow(
                                   label: 'QR Raw Data',
-                                  value:
-                                      _extractedData!['qrData'] ??
-                                      _extractedData!['qrRawData'] ??
-                                      '',
+                                  value: _extractedData!['qrRawData'] ?? '',
                                   icon: Icons.qr_code_rounded,
                                   isExpandable: true,
                                 ),

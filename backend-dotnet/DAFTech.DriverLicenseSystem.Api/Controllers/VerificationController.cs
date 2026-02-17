@@ -98,6 +98,7 @@ public class VerificationController : ControllerBase
                 LicenseId = l.LicenseId,
                 VerificationStatus = l.VerificationStatus,
                 CheckedBy = l.CheckedBy,
+                CheckedByUsername = l.CheckedByUser?.Username ?? "Unknown",
                 CheckedDate = l.CheckedDate
             }).ToList();
 
@@ -121,7 +122,8 @@ public class VerificationController : ControllerBase
 
             foreach (var log in logs)
             {
-                csv.AppendLine($"{log.LogId},{log.LicenseId},{log.VerificationStatus},{log.CheckedBy},{log.CheckedDate:yyyy-MM-dd HH:mm:ss}");
+                var username = log.CheckedByUser?.Username ?? "Unknown";
+                csv.AppendLine($"{log.LogId},{log.LicenseId},{log.VerificationStatus},{username},{log.CheckedDate:yyyy-MM-dd HH:mm:ss}");
             }
 
             var bytes = Encoding.UTF8.GetBytes(csv.ToString());

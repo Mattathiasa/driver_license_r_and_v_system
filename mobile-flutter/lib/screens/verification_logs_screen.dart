@@ -437,12 +437,38 @@ class _LogCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  DateFormat('MMM dd, yyyy').format(log.timestamp),
-                  style: GoogleFonts.outfit(
-                    color: Colors.grey.shade500,
-                    fontSize: 12,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      DateFormat('MMM dd, yyyy').format(log.timestamp),
+                      style: GoogleFonts.outfit(
+                        color: Colors.grey.shade500,
+                        fontSize: 12,
+                      ),
+                    ),
+                    if (log.checkedByUsername != null) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.person_outline,
+                            size: 12,
+                            color: Colors.grey.shade500,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            log.checkedByUsername!,
+                            style: GoogleFonts.outfit(
+                              color: Colors.grey.shade600,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(

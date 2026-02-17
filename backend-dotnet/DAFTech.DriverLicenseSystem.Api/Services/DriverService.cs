@@ -15,17 +15,39 @@ public class DriverService
 
     public async Task<Driver> RegisterDriver(DriverRegistrationDto dto, int registeredByUserId)
     {
+        // Parse date strings to DateTime with better error messages
+        if (!DateTime.TryParse(dto.DateOfBirth, out DateTime dateOfBirth))
+        {
+            throw new ArgumentException($"Invalid date of birth format: '{dto.DateOfBirth}'. Expected format: YYYY-MM-DD");
+        }
+
+        if (!DateTime.TryParse(dto.ExpiryDate, out DateTime expiryDate))
+        {
+            throw new ArgumentException($"Invalid expiry date format: '{dto.ExpiryDate}'. Expected format: YYYY-MM-DD");
+        }
+
+        // Validate dates
+        if (dateOfBirth > DateTime.Now)
+        {
+            throw new ArgumentException("Date of birth cannot be in the future");
+        }
+
+        if (expiryDate < DateTime.Now.AddDays(-1))
+        {
+            throw new ArgumentException("Expiry date has already passed");
+        }
+
         var driver = new Driver
         {
             LicenseId = dto.LicenseId,
             FullName = dto.FullName,
-            DateOfBirth = dto.DateOfBirth,
+            DateOfBirth = dateOfBirth,
             LicenseType = dto.LicenseType,
-            ExpiryDate = dto.ExpiryDate,
+            ExpiryDate = expiryDate,
             QRRawData = dto.QRRawData,
             OCRRawText = dto.OCRRawText,
             RegisteredBy = registeredByUserId,
-            CreatedDate = DateTime.UtcNow
+            CreatedDate = DateTime.Now
         };
 
         return await _driverRepository.Create(driver);
@@ -80,7 +102,7 @@ public class DriverService
 
     private static string DetermineStatus(DateTime expiryDate)
     {
-        return expiryDate >= DateTime.UtcNow ? "active" : "expired";
+        return expiryDate >= DateTime.Now ? "active" : "expired";
     }
 
     public async Task<bool> LicenseExists(string licenseId)

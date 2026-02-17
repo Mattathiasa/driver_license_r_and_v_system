@@ -23,11 +23,13 @@ public class VerificationService
     {
         Console.WriteLine($"[DEBUG] VerifyLicense called with licenseId: '{licenseId}', qrRawData length: {qrRawData?.Length ?? 0}");
         
+        // Step 1: Search for driver by license ID
         var driver = await _driverRepository.GetByLicenseId(licenseId);
 
+        // Step 2: If no driver found, it's a fake license
         if (driver == null)
         {
-            Console.WriteLine($"[DEBUG] Driver NOT FOUND in database for licenseId: '{licenseId}'");
+            Console.WriteLine($"[DEBUG] Driver NOT FOUND in database for licenseId: '{licenseId}' - FAKE LICENSE");
             await LogVerification(licenseId, "fake", checkedByUserId);
             
             return new VerificationResponseDto
@@ -36,44 +38,41 @@ public class VerificationService
                 VerificationStatus = "fake",
                 DriverName = null,
                 ExpiryDate = null,
-                CheckedDate = DateTime.UtcNow
+                CheckedDate = DateTime.Now
             };
         }
 
-        Console.WriteLine($"[DEBUG] Driver FOUND: {driver.FullName}, Expiry: {driver.ExpiryDate}, Stored QR length: {driver.QRRawData?.Length ?? 0}");
+        Console.WriteLine($"[DEBUG] Driver FOUND: {driver.FullName}, Status: {driver.Status}");
 
-        // Compare QR data
-        if (!string.IsNullOrEmpty(qrRawData) && !string.IsNullOrEmpty(driver.QRRawData) && 
-            !CompareQRData(qrRawData, driver.QRRawData))
+        // Step 3: Driver exists, check the Status column
+        string verificationStatus;
+        
+        if (driver.Status.Equals("active", StringComparison.OrdinalIgnoreCase))
         {
-            Console.WriteLine($"[DEBUG] QR Data MISMATCH - Scanned: '{qrRawData}', Stored: '{driver.QRRawData}'");
-            await LogVerification(licenseId, "fake", checkedByUserId);
-            
-            return new VerificationResponseDto
-            {
-                LicenseId = licenseId,
-                VerificationStatus = "fake",
-                DriverName = driver.FullName,
-                ExpiryDate = driver.ExpiryDate,
-                CheckedDate = DateTime.UtcNow
-            };
+            verificationStatus = "active";
+            Console.WriteLine($"[DEBUG] License is REAL and ACTIVE");
+        }
+        else if (driver.Status.Equals("expired", StringComparison.OrdinalIgnoreCase))
+        {
+            verificationStatus = "expired";
+            Console.WriteLine($"[DEBUG] License is REAL but EXPIRED");
+        }
+        else
+        {
+            // Handle other statuses (suspended, revoked, etc.) as expired
+            verificationStatus = "expired";
+            Console.WriteLine($"[DEBUG] License is REAL but status is: {driver.Status}");
         }
 
-        // Check expiry status
-        bool isExpired = driver.ExpiryDate < DateTime.UtcNow.Date;
-        string status = isExpired ? "expired" : "real";
-
-        Console.WriteLine($"[DEBUG] Verification result: {status}, IsExpired: {isExpired}, ExpiryDate: {driver.ExpiryDate}, Today: {DateTime.UtcNow.Date}");
-
-        await LogVerification(licenseId, status, checkedByUserId);
+        await LogVerification(licenseId, verificationStatus, checkedByUserId);
 
         return new VerificationResponseDto
         {
             LicenseId = licenseId,
-            VerificationStatus = status,
+            VerificationStatus = verificationStatus,
             DriverName = driver.FullName,
             ExpiryDate = driver.ExpiryDate,
-            CheckedDate = DateTime.UtcNow
+            CheckedDate = DateTime.Now
         };
     }
 
@@ -92,7 +91,7 @@ public class VerificationService
             LicenseId = licenseId,
             VerificationStatus = verificationStatus,
             CheckedBy = checkedByUserId,
-            CheckedDate = DateTime.UtcNow
+            CheckedDate = DateTime.Now
         };
 
         _context.VerificationLogs.Add(log);

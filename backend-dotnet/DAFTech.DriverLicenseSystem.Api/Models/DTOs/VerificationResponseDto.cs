@@ -9,13 +9,13 @@ public class VerificationResponseDto
     public DateTime CheckedDate { get; set; }
     
     // Additional fields for Flutter app compatibility
-    public bool IsReal => VerificationStatus != "fake";
-    public bool IsActive => VerificationStatus == "real";
+    public bool IsReal => VerificationStatus == "active" || VerificationStatus == "expired";
+    public bool IsActive => VerificationStatus == "active";
     public string Message => VerificationStatus switch
     {
         "fake" => "This license is fake and not found in our central registry",
-        "expired" => "This license has expired",
-        "real" => "This license is valid and active",
+        "expired" => "This license is real but has expired",
+        "active" => "This license is real and active",
         _ => "Unknown verification status"
     };
 }

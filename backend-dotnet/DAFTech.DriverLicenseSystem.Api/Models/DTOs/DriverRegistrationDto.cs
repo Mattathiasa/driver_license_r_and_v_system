@@ -13,14 +13,14 @@ public class DriverRegistrationDto
     public string FullName { get; set; } = string.Empty;
     
     [Required(ErrorMessage = "Date of birth is required")]
-    public DateTime DateOfBirth { get; set; }
+    public string DateOfBirth { get; set; } = string.Empty;
     
     [Required(ErrorMessage = "License type is required")]
     [StringLength(50, ErrorMessage = "License type cannot exceed 50 characters")]
     public string LicenseType { get; set; } = string.Empty;
     
     [Required(ErrorMessage = "Expiry date is required")]
-    public DateTime ExpiryDate { get; set; }
+    public string ExpiryDate { get; set; } = string.Empty;
     
     [Required(ErrorMessage = "QR raw data is required")]
     public string QRRawData { get; set; } = string.Empty;

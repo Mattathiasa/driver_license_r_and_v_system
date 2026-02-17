@@ -79,12 +79,41 @@ public class DriverController : ControllerBase
             _logger.LogInformation("Driver registration attempt for license ID: {LicenseId} by user: {UserId}",
                 request.LicenseId, userId);
 
+            // Validate the request
+            if (string.IsNullOrWhiteSpace(request.LicenseId))
+            {
+                return ApiResponseHandler.BadRequest("License ID is required");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.FullName))
+            {
+                return ApiResponseHandler.BadRequest("Full name is required");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.DateOfBirth))
+            {
+                return ApiResponseHandler.BadRequest("Date of birth is required");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ExpiryDate))
+            {
+                return ApiResponseHandler.BadRequest("Expiry date is required");
+            }
+
             // Check for duplicate
             var existingDriver = await _driverService.GetDriverByLicenseId(request.LicenseId);
             if (existingDriver != null)
             {
                 _logger.LogWarning("Duplicate license ID registration attempt: {LicenseId}", request.LicenseId);
-                return ApiResponseHandler.Conflict($"License ID {request.LicenseId} already exists in the system");
+                
+                var status = existingDriver.Status;
+                var statusMessage = status.Equals("active", StringComparison.OrdinalIgnoreCase) 
+                    ? "ACTIVE" 
+                    : "EXPIRED";
+                
+                return ApiResponseHandler.Conflict(
+                    $"License ID {request.LicenseId} is already registered in the system. Status: {statusMessage}"
+                );
             }
 
             // Register driver
@@ -94,10 +123,15 @@ public class DriverController : ControllerBase
 
             return ApiResponseHandler.Success(new { DriverId = driver.DriverId }, "Driver registered successfully");
         }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid data format in registration request");
+            return ApiResponseHandler.BadRequest(ex.Message);
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error registering driver with license ID: {LicenseId}", request.LicenseId);
-            return ApiResponseHandler.Error("An error occurred during registration");
+            _logger.LogError(ex, "Error registering driver with license ID: {LicenseId}", request?.LicenseId ?? "unknown");
+            return ApiResponseHandler.Error($"An error occurred during registration: {ex.Message}");
         }
     }
 

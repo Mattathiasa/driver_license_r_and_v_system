@@ -34,7 +34,10 @@ class ApiService {
 
   // Get headers with authorization
   Future<Map<String, String>> getHeaders({bool includeAuth = true}) async {
-    final headers = {'Content-Type': 'application/json'};
+    final headers = {
+      'Content-Type': 'application/json',
+      'ngrok-skip-browser-warning': 'true', // Skip ngrok browser warning
+    };
 
     if (includeAuth) {
       final token = await getToken();
@@ -48,16 +51,36 @@ class ApiService {
 
   // Handle API response
   Map<String, dynamic> handleResponse(http.Response response) {
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return jsonDecode(response.body);
-    } else if (response.statusCode == 401) {
-      throw Exception('Unauthorized. Please login again.');
-    } else if (response.statusCode == 404) {
-      throw Exception('Resource not found');
-    } else {
-      final body = jsonDecode(response.body);
-      final message = body['message'] ?? 'An error occurred';
-      throw Exception(message);
+    // Check if response is HTML (ngrok warning page)
+    if (response.body.trim().startsWith('<') ||
+        response.body.toLowerCase().contains('<!doctype html>')) {
+      throw Exception(
+        'Received HTML instead of JSON. This usually means:\n'
+        '1. API is not running\n'
+        '2. Wrong API URL\n'
+        '3. Ngrok tunnel is down\n'
+        'Current URL: $baseUrl',
+      );
+    }
+
+    try {
+      final jsonBody = jsonDecode(response.body);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return jsonBody;
+      } else if (response.statusCode == 401) {
+        throw Exception('Unauthorized. Please login again.');
+      } else if (response.statusCode == 404) {
+        throw Exception('Resource not found');
+      } else {
+        final message = jsonBody['message'] ?? 'An error occurred';
+        throw Exception(message);
+      }
+    } catch (e) {
+      if (e.toString().contains('Received HTML')) {
+        rethrow;
+      }
+      throw Exception('Failed to parse response: ${e.toString()}');
     }
   }
 
