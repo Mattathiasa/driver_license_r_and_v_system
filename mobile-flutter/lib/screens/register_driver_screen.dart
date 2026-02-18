@@ -22,7 +22,6 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
 
   late TextEditingController _licenseIdController;
   late TextEditingController _fullNameController;
-  late TextEditingController _dobController;
   late TextEditingController _licenseTypeController;
   late TextEditingController _expiryDateController;
   late TextEditingController _qrRawDataController;
@@ -39,9 +38,6 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
     );
     _fullNameController = TextEditingController(
       text: widget.prefilledData?['fullName'] ?? '',
-    );
-    _dobController = TextEditingController(
-      text: widget.prefilledData?['dateOfBirth'] ?? '',
     );
     _licenseTypeController = TextEditingController(
       text: widget.prefilledData?['licenseType'] ?? '',
@@ -61,7 +57,6 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
   void dispose() {
     _licenseIdController.dispose();
     _fullNameController.dispose();
-    _dobController.dispose();
     _licenseTypeController.dispose();
     _expiryDateController.dispose();
     _qrRawDataController.dispose();
@@ -89,7 +84,6 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
           : OCRService.generateQRData({
               'licenseId': normalizedLicenseId,
               'fullName': _fullNameController.text,
-              'dateOfBirth': _dobController.text,
               'licenseType': _licenseTypeController.text,
               'expiryDate': _expiryDateController.text,
               'address': '',
@@ -99,14 +93,12 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
           ? _ocrRawTextController.text
           : 'License ID: $normalizedLicenseId\n'
                 'Name: ${_fullNameController.text}\n'
-                'DOB: ${_dobController.text}\n'
                 'Grade: ${_licenseTypeController.text}\n'
                 'Expiry: ${_expiryDateController.text}';
 
       await _driverApiService.registerDriver(
         licenseId: normalizedLicenseId,
         fullName: _fullNameController.text,
-        dateOfBirth: _dobController.text,
         licenseType: _licenseTypeController.text,
         expiryDate: _expiryDateController.text,
         qrRawData: qrData,
@@ -469,23 +461,6 @@ class _RegisterDriverScreenState extends State<RegisterDriverScreen> {
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Please enter full name';
-                              }
-                              return null;
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        FadeInUp(
-                          delay: const Duration(milliseconds: 400),
-                          child: _buildTextField(
-                            controller: _dobController,
-                            label: 'Date of Birth',
-                            icon: Icons.calendar_today_rounded,
-                            hint: 'YYYY-MM-DD',
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter date of birth';
                               }
                               return null;
                             },

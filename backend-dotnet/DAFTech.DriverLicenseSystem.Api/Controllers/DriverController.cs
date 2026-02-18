@@ -90,11 +90,6 @@ public class DriverController : ControllerBase
                 return ApiResponseHandler.BadRequest("Full name is required");
             }
 
-            if (string.IsNullOrWhiteSpace(request.DateOfBirth))
-            {
-                return ApiResponseHandler.BadRequest("Date of birth is required");
-            }
-
             if (string.IsNullOrWhiteSpace(request.ExpiryDate))
             {
                 return ApiResponseHandler.BadRequest("Expiry date is required");

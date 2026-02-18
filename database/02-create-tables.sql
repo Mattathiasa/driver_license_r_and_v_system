@@ -54,7 +54,6 @@ CREATE TABLE Drivers (
     DriverID INT PRIMARY KEY IDENTITY(1,1),
     LicenseID NVARCHAR(50) NOT NULL,
     FullName NVARCHAR(100) NOT NULL,
-    DateOfBirth DATE NOT NULL,
     LicenseType NVARCHAR(10) NOT NULL,
     ExpiryDate DATE NOT NULL,
     QRRawData NVARCHAR(MAX) NULL,

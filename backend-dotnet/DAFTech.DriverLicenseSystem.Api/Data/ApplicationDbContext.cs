@@ -76,10 +76,6 @@ public class ApplicationDbContext : DbContext
                 .IsRequired()
                 .HasMaxLength(100);
             
-            entity.Property(e => e.DateOfBirth)
-                .IsRequired()
-                .HasColumnType("date");
-            
             entity.Property(e => e.LicenseType)
                 .IsRequired()
                 .HasMaxLength(10);

@@ -194,7 +194,6 @@ class _AllDriversScreenState extends State<AllDriversScreen> {
                 _DetailRow(label: 'Driver ID', value: driver.id),
                 _DetailRow(label: 'License ID', value: driver.licenseId),
                 _DetailRow(label: 'Full Name', value: driver.fullName),
-                _DetailRow(label: 'Date of Birth', value: driver.dateOfBirth),
                 _DetailRow(
                   label: 'License Type (Grade)',
                   value: 'Class ${driver.licenseType}',

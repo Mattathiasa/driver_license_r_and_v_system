@@ -33,33 +33,33 @@ GO
 PRINT '';
 PRINT 'Inserting sample drivers...';
 
-INSERT INTO Drivers (LicenseID, FullName, DateOfBirth, LicenseType, ExpiryDate, RegisteredBy, QRRawData, OCRRawText)
+INSERT INTO Drivers (LicenseID, FullName, LicenseType, ExpiryDate, RegisteredBy, QRRawData, OCRRawText)
 VALUES 
     -- Active licenses
-    ('DL123456', 'Abebe Kebede', '1985-05-15', 'B', '2026-05-15', 1,
-     'DL123456|Abebe Kebede|1985-05-15|2026-05-15|B',
-     'DRIVER LICENSE\nDL123456\nAbebe Kebede\nDOB: 15/05/1985\nEXP: 15/05/2026\nTYPE: B'),
+    ('DL123456', 'Abebe Kebede', 'B', '2026-05-15', 1,
+     'DL123456|Abebe Kebede|2026-05-15|B',
+     'DRIVER LICENSE\nDL123456\nAbebe Kebede\nEXP: 15/05/2026\nTYPE: B'),
     
-    ('DL345678', 'Dawit Assefa', '1988-03-10', 'C', '2027-03-10', 1,
-     'DL345678|Dawit Assefa|1988-03-10|2027-03-10|C',
-     'DRIVER LICENSE\nDL345678\nDawit Assefa\nDOB: 10/03/1988\nEXP: 10/03/2027\nTYPE: C'),
+    ('DL345678', 'Dawit Assefa', 'C', '2027-03-10', 1,
+     'DL345678|Dawit Assefa|2027-03-10|C',
+     'DRIVER LICENSE\nDL345678\nDawit Assefa\nEXP: 10/03/2027\nTYPE: C'),
     
-    ('DL901234', 'Sara Mohammed', '1992-11-25', 'B', '2025-11-25', 2,
-     'DL901234|Sara Mohammed|1992-11-25|2025-11-25|B',
-     'DRIVER LICENSE\nDL901234\nSara Mohammed\nDOB: 25/11/1992\nEXP: 25/11/2025\nTYPE: B'),
+    ('DL901234', 'Sara Mohammed', 'B', '2025-11-25', 2,
+     'DL901234|Sara Mohammed|2025-11-25|B',
+     'DRIVER LICENSE\nDL901234\nSara Mohammed\nEXP: 25/11/2025\nTYPE: B'),
     
-    ('DL246810', 'Tigist Haile', '1990-09-08', 'A', '2026-09-08', 2,
-     'DL246810|Tigist Haile|1990-09-08|2026-09-08|A',
-     'DRIVER LICENSE\nDL246810\nTigist Haile\nDOB: 08/09/1990\nEXP: 08/09/2026\nTYPE: A'),
+    ('DL246810', 'Tigist Haile', 'A', '2026-09-08', 2,
+     'DL246810|Tigist Haile|2026-09-08|A',
+     'DRIVER LICENSE\nDL246810\nTigist Haile\nEXP: 08/09/2026\nTYPE: A'),
     
     -- Expired licenses
-    ('DL789012', 'Almaz Tesfaye', '1990-08-20', 'A', '2024-08-20', 1,
-     'DL789012|Almaz Tesfaye|1990-08-20|2024-08-20|A',
-     'DRIVER LICENSE\nDL789012\nAlmaz Tesfaye\nDOB: 20/08/1990\nEXP: 20/08/2024\nTYPE: A'),
+    ('DL789012', 'Almaz Tesfaye', 'A', '2024-08-20', 1,
+     'DL789012|Almaz Tesfaye|2024-08-20|A',
+     'DRIVER LICENSE\nDL789012\nAlmaz Tesfaye\nEXP: 20/08/2024\nTYPE: A'),
     
-    ('DL567890', 'Yohannes Bekele', '1987-07-18', 'A', '2023-07-18', 2,
-     'DL567890|Yohannes Bekele|1987-07-18|2023-07-18|A',
-     'DRIVER LICENSE\nDL567890\nYohannes Bekele\nDOB: 18/07/1987\nEXP: 18/07/2023\nTYPE: A');
+    ('DL567890', 'Yohannes Bekele', 'A', '2023-07-18', 2,
+     'DL567890|Yohannes Bekele|2023-07-18|A',
+     'DRIVER LICENSE\nDL567890\nYohannes Bekele\nEXP: 18/07/2023\nTYPE: A');
 
 PRINT '  - Inserted 6 sample drivers (4 active, 2 expired)';
 GO

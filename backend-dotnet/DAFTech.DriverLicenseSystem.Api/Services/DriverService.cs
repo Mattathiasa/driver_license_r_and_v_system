@@ -15,23 +15,13 @@ public class DriverService
 
     public async Task<Driver> RegisterDriver(DriverRegistrationDto dto, int registeredByUserId)
     {
-        // Parse date strings to DateTime with better error messages
-        if (!DateTime.TryParse(dto.DateOfBirth, out DateTime dateOfBirth))
-        {
-            throw new ArgumentException($"Invalid date of birth format: '{dto.DateOfBirth}'. Expected format: YYYY-MM-DD");
-        }
-
+        // Parse expiry date string to DateTime
         if (!DateTime.TryParse(dto.ExpiryDate, out DateTime expiryDate))
         {
             throw new ArgumentException($"Invalid expiry date format: '{dto.ExpiryDate}'. Expected format: YYYY-MM-DD");
         }
 
-        // Validate dates
-        if (dateOfBirth > DateTime.Now)
-        {
-            throw new ArgumentException("Date of birth cannot be in the future");
-        }
-
+        // Validate expiry date
         if (expiryDate < DateTime.Now.AddDays(-1))
         {
             throw new ArgumentException("Expiry date has already passed");
@@ -41,7 +31,6 @@ public class DriverService
         {
             LicenseId = dto.LicenseId,
             FullName = dto.FullName,
-            DateOfBirth = dateOfBirth,
             LicenseType = dto.LicenseType,
             ExpiryDate = expiryDate,
             QRRawData = dto.QRRawData,
@@ -64,7 +53,6 @@ public class DriverService
             DriverId = d.DriverId,
             LicenseId = d.LicenseId,
             FullName = d.FullName,
-            DateOfBirth = d.DateOfBirth,
             LicenseType = d.LicenseType,
             ExpiryDate = d.ExpiryDate,
             QRRawData = d.QRRawData,
@@ -89,7 +77,6 @@ public class DriverService
             DriverId = driver.DriverId,
             LicenseId = driver.LicenseId,
             FullName = driver.FullName,
-            DateOfBirth = driver.DateOfBirth,
             LicenseType = driver.LicenseType,
             ExpiryDate = driver.ExpiryDate,
             QRRawData = driver.QRRawData,

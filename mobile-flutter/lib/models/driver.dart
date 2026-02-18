@@ -2,7 +2,6 @@ class Driver {
   final String id;
   final String licenseId;
   final String fullName;
-  final String dateOfBirth;
   final String licenseType;
   final String expiryDate;
   final String? qrData;
@@ -15,7 +14,6 @@ class Driver {
     required this.id,
     required this.licenseId,
     required this.fullName,
-    required this.dateOfBirth,
     required this.licenseType,
     required this.expiryDate,
     this.qrData,
@@ -48,7 +46,6 @@ class Driver {
       'id': id,
       'licenseId': licenseId,
       'fullName': fullName,
-      'dateOfBirth': dateOfBirth,
       'licenseType': licenseType,
       'expiryDate': expiryDate,
       'qrData': qrData,
@@ -64,7 +61,6 @@ class Driver {
       id: json['driverId']?.toString() ?? json['id']?.toString() ?? '',
       licenseId: json['licenseId'] ?? '',
       fullName: json['fullName'] ?? '',
-      dateOfBirth: json['dateOfBirth'] ?? '',
       licenseType: json['licenseType'] ?? '',
       expiryDate: json['expiryDate'] ?? '',
       qrData: json['qrRawData'],
@@ -81,7 +77,6 @@ class Driver {
     String? id,
     String? licenseId,
     String? fullName,
-    String? dateOfBirth,
     String? licenseType,
     String? expiryDate,
     String? qrData,
@@ -94,7 +89,6 @@ class Driver {
       id: id ?? this.id,
       licenseId: licenseId ?? this.licenseId,
       fullName: fullName ?? this.fullName,
-      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       licenseType: licenseType ?? this.licenseType,
       expiryDate: expiryDate ?? this.expiryDate,
       qrData: qrData ?? this.qrData,

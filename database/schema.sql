@@ -41,13 +41,12 @@ CREATE TABLE Users (
 GO
 
 -- Drivers Table
--- Required Attributes: Driver ID, License ID (unique), Full name, Date of birth, 
+-- Required Attributes: Driver ID, License ID (unique), Full name,
 -- License Type (Grade), Expiry date, QR raw data, OCR raw text, Created date, Registered by
 CREATE TABLE Drivers (
     DriverID INT PRIMARY KEY IDENTITY(1,1),
     LicenseID NVARCHAR(50) NOT NULL UNIQUE,
     FullName NVARCHAR(100) NOT NULL,
-    DateOfBirth DATE NOT NULL,
     LicenseType NVARCHAR(10) NOT NULL, -- License Type (Grade)
     ExpiryDate DATE NOT NULL,
     QRRawData NVARCHAR(MAX) NULL,
@@ -208,27 +207,27 @@ VALUES
 GO
 
 -- Insert sample drivers
-INSERT INTO Drivers (LicenseID, FullName, DateOfBirth, ExpiryDate, LicenseType, Status, RegisteredBy, QRRawData, OCRRawText)
+INSERT INTO Drivers (LicenseID, FullName, ExpiryDate, LicenseType, Status, RegisteredBy, QRRawData, OCRRawText)
 VALUES 
-    ('DL123456', 'Abebe Kebede', '1985-05-15', '2026-05-15', 'B', 'active', 1, 
-     'DL123456|Abebe Kebede|1985-05-15|2026-05-15|B', 
-     'DRIVER LICENSE\nDL123456\nAbebe Kebede\nDOB: 15/05/1985\nEXP: 15/05/2026\nTYPE: B'),
+    ('DL123456', 'Abebe Kebede', '2026-05-15', 'B', 'active', 1, 
+     'DL123456|Abebe Kebede|2026-05-15|B', 
+     'DRIVER LICENSE\nDL123456\nAbebe Kebede\nEXP: 15/05/2026\nTYPE: B'),
     
-    ('DL789012', 'Almaz Tesfaye', '1990-08-20', '2024-08-20', 'A', 'expired', 1,
-     'DL789012|Almaz Tesfaye|1990-08-20|2024-08-20|A',
-     'DRIVER LICENSE\nDL789012\nAlmaz Tesfaye\nDOB: 20/08/1990\nEXP: 20/08/2024\nTYPE: A'),
+    ('DL789012', 'Almaz Tesfaye', '2024-08-20', 'A', 'expired', 1,
+     'DL789012|Almaz Tesfaye|2024-08-20|A',
+     'DRIVER LICENSE\nDL789012\nAlmaz Tesfaye\nEXP: 20/08/2024\nTYPE: A'),
     
-    ('DL345678', 'Dawit Assefa', '1988-03-10', '2027-03-10', 'C', 'active', 1,
-     'DL345678|Dawit Assefa|1988-03-10|2027-03-10|C',
-     'DRIVER LICENSE\nDL345678\nDawit Assefa\nDOB: 10/03/1988\nEXP: 10/03/2027\nTYPE: C'),
+    ('DL345678', 'Dawit Assefa', '2027-03-10', 'C', 'active', 1,
+     'DL345678|Dawit Assefa|2027-03-10|C',
+     'DRIVER LICENSE\nDL345678\nDawit Assefa\nEXP: 10/03/2027\nTYPE: C'),
     
-    ('DL901234', 'Sara Mohammed', '1992-11-25', '2025-11-25', 'B', 'active', 2,
-     'DL901234|Sara Mohammed|1992-11-25|2025-11-25|B',
-     'DRIVER LICENSE\nDL901234\nSara Mohammed\nDOB: 25/11/1992\nEXP: 25/11/2025\nTYPE: B'),
+    ('DL901234', 'Sara Mohammed', '2025-11-25', 'B', 'active', 2,
+     'DL901234|Sara Mohammed|2025-11-25|B',
+     'DRIVER LICENSE\nDL901234\nSara Mohammed\nEXP: 25/11/2025\nTYPE: B'),
     
-    ('DL567890', 'Yohannes Bekele', '1987-07-18', '2023-07-18', 'A', 'expired', 2,
-     'DL567890|Yohannes Bekele|1987-07-18|2023-07-18|A',
-     'DRIVER LICENSE\nDL567890\nYohannes Bekele\nDOB: 18/07/1987\nEXP: 18/07/2023\nTYPE: A');
+    ('DL567890', 'Yohannes Bekele', '2023-07-18', 'A', 'expired', 2,
+     'DL567890|Yohannes Bekele|2023-07-18|A',
+     'DRIVER LICENSE\nDL567890\nYohannes Bekele\nEXP: 18/07/2023\nTYPE: A');
 GO
 
 -- Insert sample verification logs
@@ -251,7 +250,6 @@ SELECT
     d.DriverID,
     d.LicenseID,
     d.FullName,
-    d.DateOfBirth,
     d.ExpiryDate,
     d.LicenseType,
     d.Status,

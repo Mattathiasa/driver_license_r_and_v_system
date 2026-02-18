@@ -8,7 +8,6 @@ class DriverApiService {
   Future<int> registerDriver({
     required String licenseId,
     required String fullName,
-    required String dateOfBirth,
     required String licenseType,
     required String expiryDate,
     required String qrRawData,
@@ -18,7 +17,6 @@ class DriverApiService {
       final response = await _apiService.post('/Driver/register', {
         'licenseId': licenseId,
         'fullName': fullName,
-        'dateOfBirth': dateOfBirth,
         'licenseType': licenseType,
         'expiryDate': expiryDate,
         'qrRawData': qrRawData,
